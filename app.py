@@ -31,7 +31,7 @@ def main() -> None:
             st.success(msg)
         else:
             st.warning(msg)
-        st.caption(f"Чанков в базе: {engine.store.count()}")
+        st.caption(f"Фрагментов в индексе: {engine.store.count()}")
         st.caption(f"Модель эмбеддингов: `{cfg.models.embedding}`")
         with st.expander("Подсказки"):
             st.markdown(

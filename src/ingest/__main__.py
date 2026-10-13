@@ -30,7 +30,11 @@ def main() -> None:
         mark = {"ready": "+", "skip": "=", "error": "!"}.get(r.status, "?")
         print(f" [{mark}] {r.path}: {r.status} {r.chunks} чанков {r.detail}")
     ready = sum(1 for r in results if r.status == "ready")
-    print(f"Готово: {ready} проиндексировано, всего чанков в базе: {store.count()}")
+    print(
+        f"Готово: {ready} проиндексировано; "
+        f"parent-чанков: {registry.total_chunks()}, "
+        f"child-фрагментов в Chroma: {store.count()}"
+    )
 
 
 if __name__ == "__main__":

@@ -105,5 +105,9 @@ def calibrate_threshold(
             "false_refusal": round(fp / n_in, 4) if n_in else None,
             "f1": round(f1, 4),
         })
-    best = max(table, key=lambda t: t["f1"])
-    return table, (best["tau"] if best["f1"] > 0 else None)
+    # При равном F1 берём середину «плато» устойчивости — середина зазора
+    # между распределениями надёжнее края (меньше чувствительна к сдвигам).
+    best_f1 = max(r["f1"] for r in table)
+    plateau = [r["tau"] for r in table if r["f1"] == best_f1]
+    best_tau = plateau[len(plateau) // 2] if best_f1 > 0 else None
+    return table, best_tau
