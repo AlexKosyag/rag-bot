@@ -1,0 +1,27 @@
+# Конфигурация RAG-бота. Документация: docs/architecture.md
+models:
+  embedding: intfloat/multilingual-e5-base   # light-fallback: sentence-transformers/multilingual-MiniLM-L12-v2
+  llm: qwen2.5:7b                            # Ollama tag; CPU-fallback: qwen2.5:3b
+  device: cpu                                # cpu | cuda
+
+retrieval:
+  top_k: 5                 # 3..10, правится в админке
+  threshold: 0.55          # порог отказа tau (калибровать на dev! см. docs/evaluation.md)
+  delta: 0.05              # мин. разрыв top1-top2 (низкий -> осторожный ответ)
+
+chunking:
+  size_tokens: 500
+  overlap_tokens: 50
+  min_tokens: 50
+
+generation:
+  temperature: 0.2
+  max_tokens: 700
+  timeout_s: 90
+
+paths:
+  raw_dir: data/raw
+  chroma_dir: data/chroma
+  registry_db: data/registry.db
+  reports_dir: reports
+  qa_dir: data/qa

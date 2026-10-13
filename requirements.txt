@@ -1,0 +1,22 @@
+# UI
+streamlit>=1.65
+# Embeddings
+sentence-transformers>=6.1
+torch
+# Vector store
+chromadb>=1.5
+# Parsing
+pymupdf>=1.28
+python-docx>=1.2
+# Config / env
+PyYAML>=6.0
+python-dotenv>=1.0
+# LLM client
+requests>=2.32
+# Metrics / report
+numpy>=1.26
+pandas>=2.2
+matplotlib>=3.10
+# Quality
+pytest>=9.1
+ruff>=0.17
