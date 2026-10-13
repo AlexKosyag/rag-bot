@@ -41,6 +41,9 @@ class OllamaClient:
             "messages": messages,
             "stream": stream,
             "options": {"temperature": 0.2},
+            # держим модель в памяти между запросами чата (иначе Ollama
+            # выгружает её через 5 минут простоя и первый ответ платит за загрузку)
+            "keep_alive": "30m",
         }
 
     def stream(self, messages: list[dict]) -> Iterator[str]:

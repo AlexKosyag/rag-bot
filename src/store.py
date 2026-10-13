@@ -36,20 +36,38 @@ class VectorStore:
         )
 
     def upsert(self, ids, texts, embeddings, metadatas) -> None:
-        self._col.upsert(
-            ids=list(ids),
-            documents=list(texts),
-            embeddings=[list(map(float, e)) for e in embeddings],
-            metadatas=list(metadatas),
-        )
+        try:
+            self._col.upsert(
+                ids=list(ids),
+                documents=list(texts),
+                embeddings=[list(map(float, e)) for e in embeddings],
+                metadatas=list(metadatas),
+            )
+        except Exception as exc:
+            if "dimension" in str(exc).lower():
+                raise RuntimeError(
+                    "Размерность эмбеддингов не совпадает с уже индексированными "
+                    "данными (сменили модель эмбеддингов?). Выполните полную "
+                    "переиндексацию: python -m src.ingest --force"
+                ) from exc
+            raise
 
     def query(self, vector, k: int, where: dict | None = None) -> list[Hit]:
-        res = self._col.query(
-            query_embeddings=[list(map(float, vector))],
-            n_results=k,
-            where=where,
-            include=["documents", "metadatas", "distances"],
-        )
+        try:
+            res = self._col.query(
+                query_embeddings=[list(map(float, vector))],
+                n_results=k,
+                where=where,
+                include=["documents", "metadatas", "distances"],
+            )
+        except Exception as exc:
+            if "dimension" in str(exc).lower():
+                raise RuntimeError(
+                    "Запрос не проходит: размерность эмбеддинга не совпадает с "
+                    "базой (сменили модель?). Переиндексация: "
+                    "python -m src.ingest --force"
+                ) from exc
+            raise
         hits: list[Hit] = []
         for i, (doc, meta, dist) in enumerate(
             zip(res["documents"][0], res["metadatas"][0], res["distances"][0])
@@ -83,7 +101,12 @@ class VectorStore:
 
 
 class Registry:
-    """SQLite-реестр документов: статусы, хэши, дедупликация."""
+    """SQLite-реестр: документы + родительские чанки (тексты для контекста).
+
+    Векторы дочерних фрагментов живут в Chroma; полный текст родительского
+    чанка (~500 токенов) хранится здесь и подставляется в контекст LLM
+    после группировки найденных абзацев (small-to-big).
+    """
 
     def __init__(self, db_path: Path | str):
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -101,6 +124,21 @@ class Registry:
                 uploaded_at TEXT NOT NULL
             )
             """
+        )
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chunks (
+                id TEXT PRIMARY KEY,
+                doc_id TEXT NOT NULL,
+                chunk_index INTEGER NOT NULL,
+                heading TEXT,
+                page INTEGER,
+                text TEXT NOT NULL
+            )
+            """
+        )
+        self._conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chunks_doc ON chunks(doc_id)"
         )
         self._conn.commit()
 
@@ -145,6 +183,39 @@ class Registry:
 
     def delete(self, doc_id: str) -> None:
         self._conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+        self._conn.execute("DELETE FROM chunks WHERE doc_id = ?", (doc_id,))
+        self._conn.commit()
+
+    # ----------------------------------------------------------- чанки
+    def save_chunks(self, rows: list[dict]) -> None:
+        """Пакетный upsert родительских чанков.
+
+        rows: {"id", "doc_id", "chunk_index", "heading", "page", "text"}
+        """
+        if not rows:
+            return
+        self._conn.executemany(
+            """
+            INSERT INTO chunks (id, doc_id, chunk_index, heading, page, text)
+            VALUES (:id, :doc_id, :chunk_index, :heading, :page, :text)
+            ON CONFLICT(id) DO UPDATE SET
+                heading=excluded.heading, page=excluded.page, text=excluded.text
+            """,
+            rows,
+        )
+        self._conn.commit()
+
+    def get_chunks(self, ids: list[str]) -> dict[str, sqlite3.Row]:
+        if not ids:
+            return {}
+        marks = ",".join("?" * len(ids))
+        cur = self._conn.execute(
+            f"SELECT * FROM chunks WHERE id IN ({marks})", list(ids)
+        )
+        return {r["id"]: r for r in cur.fetchall()}
+
+    def delete_chunks(self, doc_id: str) -> None:
+        self._conn.execute("DELETE FROM chunks WHERE doc_id = ?", (doc_id,))
         self._conn.commit()
 
     def list(self) -> list[dict]:

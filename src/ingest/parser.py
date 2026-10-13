@@ -17,6 +17,9 @@ class ParsedDocument:
     text: str
     page_starts: list[int] = field(default_factory=lambda: [0])  # смещения страниц
     error: str | None = None
+    # False -> в тексте есть markdown-заголовки («#»), нумерованные
+    # строки за заголовки НЕ считать (иначе теряется текст пунктов).
+    numbered_headings: bool = False
 
     def page_for_offset(self, offset: int) -> int:
         """1-based номер страницы по смещению символа в text."""
@@ -83,9 +86,10 @@ def _parse_pdf(path: Path) -> ParsedDocument:
         text_parts.append(chunk)
         offset += len(chunk) + 2  # + "\n\n"
     text = "\n\n".join(text_parts)
+    # В PDF нет markdown-структуры — включаем эвристику нумерованных заголовков.
     return ParsedDocument(
         name=path.name, source_type="pdf", text=_normalize(text),
-        page_starts=page_starts,
+        page_starts=page_starts, numbered_headings=True,
     )
 
 
@@ -104,7 +108,9 @@ def _parse_docx(path: Path) -> ParsedDocument:
     except Exception as exc:
         raise ParseError(f"Не удалось открыть DOCX: {exc}") from exc
 
-    lines: list[str] = []
+    # Блоки через "\n\n": парсер чанкера должен видеть границы абзацев.
+    blocks: list[str] = []
+    found_heading_style = False
     body = document.element.body
     for child in body.iterchildren():
         if child.tag == qn("w:p"):
@@ -115,18 +121,27 @@ def _parse_docx(path: Path) -> ParsedDocument:
                 continue
             m = _HEADING_STYLE_RE.match(style)
             if m:
+                found_heading_style = True
                 level = int(m.group(2) or 1)
-                lines.append(f"{'#' * min(level + 1, 6)} {text}")
+                blocks.append(f"{'#' * min(level + 1, 6)} {text}")
             else:
-                lines.append(text)
+                blocks.append(text)
         elif child.tag == qn("w:tbl"):
             table = Table(child, document)
+            rows = []
             for row in table.rows:
                 cells = [c.text.strip().replace("\n", " ") for c in row.cells]
                 if any(cells):
-                    lines.append("| " + " | ".join(cells) + " |")
+                    rows.append("| " + " | ".join(cells) + " |")
+            if rows:
+                blocks.append("\n".join(rows))  # таблица — один блок
 
-    text = _normalize("\n".join(lines))
+    text = _normalize("\n\n".join(blocks))
     if not text:
         raise ParseError("DOCX не содержит текста")
-    return ParsedDocument(name=path.name, source_type="docx", text=text)
+    # Если стилей «Заголовок» в документе не было — нумерованные строки
+    # считаем заголовками разделов (эвристика как для PDF).
+    return ParsedDocument(
+        name=path.name, source_type="docx", text=text,
+        numbered_headings=not found_heading_style,
+    )

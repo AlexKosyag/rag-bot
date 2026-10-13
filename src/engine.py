@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 from src.config import Config
-from src.embedder import Embedder
+from src.embedder import create_embedder
 from src.generate.answer import (
     build_messages,
     format_sources,
@@ -16,7 +16,7 @@ from src.generate.answer import (
 from src.llm.client import OllamaClient
 from src.retrieve.gate import Decision, decide
 from src.retrieve.search import RetrievalResult, retrieve
-from src.store import VectorStore
+from src.store import Registry, VectorStore
 
 
 @dataclass
@@ -33,20 +33,22 @@ class Prepared:
 
 
 class RagEngine:
-    def __init__(self, cfg: Config, embedder: Embedder, store: VectorStore,
-                 llm: OllamaClient):
+    def __init__(self, cfg: Config, embedder, store: VectorStore,
+                 llm: OllamaClient, registry: Registry | None = None):
         self.cfg = cfg
         self.embedder = embedder
         self.store = store
         self.llm = llm
+        self.registry = registry
 
     @classmethod
     def from_config(cls, cfg: Config) -> "RagEngine":
-        embedder = Embedder(cfg.models.embedding, cfg.models.device)
+        embedder = create_embedder(cfg)
         store = VectorStore(cfg.paths.chroma_dir)
+        registry = Registry(cfg.paths.registry_db)
         llm = OllamaClient(cfg.generation.base_url, cfg.models.llm,
                            cfg.generation.timeout_s)
-        return cls(cfg, embedder, store, llm)
+        return cls(cfg, embedder, store, llm, registry)
 
     # ------------------------------------------------------------------ #
     def prepare(self, query: str, top_k: int | None = None,
@@ -57,6 +59,7 @@ class RagEngine:
             self.embedder,
             self.store,
             top_k=top_k or self.cfg.retrieval.top_k,
+            registry=self.registry,
         )
         decision = decide(
             r,

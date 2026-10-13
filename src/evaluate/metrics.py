@@ -73,3 +73,37 @@ def percentile(values: list[float], p: float) -> float:
     s = sorted(values)
     idx = min(len(s) - 1, max(0, int(round((p / 100) * (len(s) - 1)))))
     return round(s[idx], 3)
+
+
+def calibrate_threshold(
+    rows: list[dict], grid: list[float] | None = None
+) -> tuple[list[dict], float | None]:
+    """Подбор tau: максимум F1 между корректным ответом и корректным отказом.
+
+    rows: [{"score": float (max score), "expect_refusal": bool}, ...] — оценки
+    на dev-наборе. Positive-класс задачи детекции отказа: «вне базы» и отказали.
+    Возвращает (таблица по сетке, лучший tau).
+    """
+    if grid is None:
+        grid = [round(x / 100, 2) for x in range(30, 81)]
+    n_out = sum(1 for r in rows if r["expect_refusal"])
+    n_in = len(rows) - n_out
+
+    table: list[dict] = []
+    for tau in grid:
+        refused = [r["score"] < tau for r in rows]
+        tp = sum(1 for r, f in zip(rows, refused) if r["expect_refusal"] and f)
+        fp = sum(1 for r, f in zip(rows, refused) if not r["expect_refusal"] and f)
+        fn = sum(1 for r, f in zip(rows, refused) if r["expect_refusal"] and not f)
+        precision = tp / (tp + fp) if (tp + fp) else 0.0
+        recall = tp / (tp + fn) if (tp + fn) else 0.0
+        f1 = (2 * precision * recall / (precision + recall)
+              if (precision + recall) else 0.0)
+        table.append({
+            "tau": tau,
+            "correct_refusal": round(tp / n_out, 4) if n_out else None,
+            "false_refusal": round(fp / n_in, 4) if n_in else None,
+            "f1": round(f1, 4),
+        })
+    best = max(table, key=lambda t: t["f1"])
+    return table, (best["tau"] if best["f1"] > 0 else None)

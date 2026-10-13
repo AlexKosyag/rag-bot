@@ -14,7 +14,8 @@ CONFIG_PATH = ROOT / "config.yaml"
 
 @dataclass
 class ModelsCfg:
-    embedding: str = "intfloat/multilingual-e5-base"
+    embedding: str = "qwen3-embedding:0.6b"
+    embedding_backend: str = "ollama"   # ollama | sentence_transformers
     llm: str = "qwen2.5:7b"
     device: str = "cpu"
 
@@ -22,7 +23,7 @@ class ModelsCfg:
 @dataclass
 class RetrievalCfg:
     top_k: int = 5
-    threshold: float = 0.55
+    threshold: float = 0.50
     delta: float = 0.05
 
 

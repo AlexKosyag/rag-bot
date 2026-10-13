@@ -77,7 +77,10 @@ Qwen2.5-7B (с оговоркой о self-preference bias в отчёте), пр
 ## 4. Эксперименты (для раздела «обоснование выбранного метода»)
 
 1. Чанкинг: 256 / 500 / 1024 токенов → Hit@k, MRR.
-2. Embedding: e5-base vs MiniLM-L12 (light) → Hit@k на том же корпусе.
+2. Embedding: активная `qwen3-embedding:0.6b` vs `multilingual-e5-base` /
+   MiniLM-L12 (light) → Hit@k на том же корпусе (e5/MiniLM требуют доступа
+   к CDN Hugging Face — недоступен из среды, поэтому сравнение остаётся
+   пунктом при переносе на машину с доступом в HF).
 3. `top_k`: 3 / 5 / 8 → Faithfulness vs latency.
 4. `tau`: кривая Correct/False Refusal → выбранный рабочий порог.
 5. (резерв) гибрид BM25+vector / reranker — если пороги выше не достигаются.

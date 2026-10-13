@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.config import Config
-from src.embedder import Embedder
-from src.ingest.chunker import chunk_document
+from src.embedder import AnyEmbedder
+from src.ingest.chunker import Unit, chunk_document
 from src.ingest.parser import ParseError, parse_file
 from src.store import Registry, VectorStore
 
@@ -37,7 +37,7 @@ def _sha256(path: Path) -> str:
 def index_file(
     cfg: Config,
     path: Path | str,
-    embedder: Embedder,
+    embedder: AnyEmbedder,
     store: VectorStore,
     registry: Registry,
     force: bool = False,
@@ -57,6 +57,7 @@ def index_file(
     old_id = old["id"] if old else None
     if old_id:
         store.delete_doc(old_id)
+        registry.delete_chunks(old_id)
 
     try:
         doc = parse_file(path)
@@ -70,6 +71,7 @@ def index_file(
         overlap_tokens=cfg.chunking.overlap_tokens,
         min_tokens=cfg.chunking.min_tokens,
         token_counter=embedder.count_tokens,
+        detect_numbered_headings=doc.numbered_headings,
     )
     if not chunks:
         registry.upsert(path.name, sha, "error", error="нет текста", doc_id=old_id)
@@ -77,35 +79,63 @@ def index_file(
 
     doc_id = registry.upsert(path.name, sha, "indexing", doc_id=old_id)
 
-    texts = [c.text for c in chunks]
-    embeddings = embedder.encode_passages(texts)
-    metadatas = [
+    # --- parent-чанки -> SQLite (тексты для контекста LLM) ---------------
+    def _page(offset: int) -> int:
+        return doc.page_for_offset(offset) if doc.source_type == "pdf" else 0
+
+    registry.save_chunks([
         {
-            "chunk_id": f"{doc_id}:{c.index}",
+            "id": f"{doc_id}:{c.index}",
             "doc_id": doc_id,
-            "doc_name": path.name,
             "chunk_index": c.index,
             "heading": (c.heading or "—")[:250],
-            "page": doc.page_for_offset(c.start) if doc.source_type == "pdf" else 0,
-            "source_type": doc.source_type,
+            "page": _page(c.start),
+            "text": c.text,
         }
         for c in chunks
-    ]
+    ])
+
+    # --- child-фрагменты -> Chroma (это они эмбеддятся и ищутся) ---------
+    # Эмбеддинг child = «заголовок раздела + текст»: заголовок FAQ/раздела
+    # часто и есть формулировка вопроса (контекстуализация, см. pipeline.md).
+    child_ids: list[str] = []
+    child_texts: list[str] = []
+    child_metas: list[dict] = []
+    for c in chunks:
+        for j, child in enumerate(c.children or [Unit(
+                heading=c.heading, text=c.text, start=c.start)]):
+            heading = child.heading or c.heading or "—"
+            child_ids.append(f"{doc_id}:{c.index}:{j}")
+            child_texts.append(child.text)
+            child_metas.append({
+                "chunk_id": f"{doc_id}:{c.index}",  # ключ parent-группировки
+                "doc_id": doc_id,
+                "doc_name": path.name,
+                "child_index": j,
+                "heading": heading[:250],
+                "page": _page(child.start),
+                "source_type": doc.source_type,
+            })
+
+    embeddings = embedder.encode_passages(
+        [f"{m['heading']}\n{t}" for m, t in zip(child_metas, child_texts)]
+    )
     store.upsert(
-        ids=[m["chunk_id"] for m in metadatas],
-        texts=texts,
+        ids=child_ids,
+        texts=child_texts,
         embeddings=embeddings,
-        metadatas=metadatas,
+        metadatas=child_metas,
     )
     registry.upsert(path.name, sha, "ready", chunks_count=len(chunks), doc_id=doc_id)
-    log.info("indexed %s -> %d chunks", path.name, len(chunks))
+    log.info("indexed %s -> %d chunks / %d children",
+             path.name, len(chunks), len(child_ids))
     return IndexResult(str(path), doc_id, "ready", len(chunks))
 
 
 def index_directory(
     cfg: Config,
     directory: Path | str,
-    embedder: Embedder,
+    embedder: AnyEmbedder,
     store: VectorStore,
     registry: Registry,
     force: bool = False,

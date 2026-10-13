@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from src.embedder import CHARS_PER_TOKEN, estimate_tokens
 
@@ -27,19 +27,37 @@ class Chunk:
     text: str
     heading: str
     start: int  # смещение основного содержимого (для номера страницы)
+    # Дочерние фрагменты: именно они эмбеддятся и участвуют в поиске
+    # (small-to-big, см. docs/pipeline.md); Chunk.text отдаётся в контекст LLM.
+    children: list[Unit] = field(default_factory=list)
 
 
-def _is_heading(line: str) -> str | None:
+def _is_numbered_heading(line: str) -> bool:
+    """Строгая эвристика нумерованного заголовка (только PDF/DOCX без стилей).
+
+    Списковый пункт-предложение («3.3. Каждое подразделение возглавляет
+    руководитель.») — НЕ заголовок: иначе его текст исчезает из чанков.
+    Заголовок: короткий, без точки в конце, максимум одна запятая.
+    """
+    if not HEADING_NUM.match(line):
+        return False
+    if len(line) >= 70:
+        return False
+    if line.endswith((".", "!", "?", ";", ":", "—", "-")):
+        return False
+    return line.count(",") <= 1
+
+
+def _is_heading(line: str, detect_numbered: bool = False) -> str | None:
     """Возвращает текст заголовка или None."""
     if m := HEADING_MD.match(line):
         return m.group(2).strip()
-    if len(line) < 80 and not line.endswith((".", ":", ";", "—", "-")):
-        if HEADING_NUM.match(line):
-            return line.strip()
+    if detect_numbered and _is_numbered_heading(line):
+        return line.strip()
     return None
 
 
-def _scan(text: str) -> list[Unit]:
+def _scan(text: str, detect_numbered_headings: bool = False) -> list[Unit]:
     """Разбирает текст на абзацы, отслеживая ближайший заголовок."""
     units: list[Unit] = []
     heading: str | None = None
@@ -58,7 +76,7 @@ def _scan(text: str) -> list[Unit]:
 
     for line in text.split("\n"):
         stripped = line.strip()
-        if h := _is_heading(stripped):
+        if h := _is_heading(stripped, detect_numbered_headings):
             flush()
             heading = h
         elif not stripped:
@@ -90,23 +108,29 @@ def chunk_document(
     min_tokens: int = 50,
     token_counter=estimate_tokens,
     page_starts: list[int] | None = None,
+    detect_numbered_headings: bool = False,
 ) -> list[Chunk]:
     """Пакует абзацы в чанки до size_tokens; длинные секции режет с перекрытием.
 
     min_tokens зарезервирован под эксперименты (см. docs/pipeline.md).
+    detect_numbered_headings — эвристика «3.2. Порядок...» для документов
+    без явной разметки заголовков (PDF, DOCX без стилей «Заголовок»);
+    для markdown выключена, чтобы не терять текст нумерованных пунктов.
     """
     del min_tokens  # используется в экспериментах, не в базовом алгоритме
-    units = _scan(doc_text)
+    units = _scan(doc_text, detect_numbered_headings)
     chunks: list[Chunk] = []
     tail = ""  # перекрытие, префиксующее следующий чанк
 
-    def emit(body: str, start: int, heading: str) -> None:
+    def emit(body: str, start: int, heading: str,
+             children: list[Unit]) -> None:
         nonlocal tail
         body = body.strip()
         if not body:
             return
         text = f"{tail}\n\n{body}" if tail else body
-        chunks.append(Chunk(index=len(chunks), text=text, heading=heading, start=start))
+        chunks.append(Chunk(index=len(chunks), text=text, heading=heading,
+                            start=start, children=children))
         tail = _overlap_tail(body, overlap_tokens)
 
     buf: list[Unit] = []
@@ -119,6 +143,7 @@ def chunk_document(
                 "\n\n".join(u.text for u in buf),
                 start=buf[0].start,
                 heading=buf[0].heading or "—",
+                children=list(buf),
             )
         buf, buf_tokens = [], 0
 
@@ -134,8 +159,11 @@ def chunk_document(
             def emit_piece() -> None:
                 nonlocal piece, piece_tokens, piece_start
                 if piece:
-                    emit("\n\n".join(piece), start=piece_start,
-                         heading=unit.heading or "—")
+                    body = "\n\n".join(piece)
+                    emit(body, start=piece_start,
+                         heading=unit.heading or "—",
+                         children=[Unit(heading=unit.heading, text=body,
+                                        start=piece_start)])
                     piece, piece_tokens = [], 0
                     piece_start = unit.start  # сдвиг уточняется ниже
 

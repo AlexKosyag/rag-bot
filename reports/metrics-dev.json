@@ -1,0 +1,23 @@
+{
+  "params": {
+    "qa": "data\\qa\\dev.json",
+    "k": 5,
+    "tau": 0.5,
+    "embedding": "qwen3-embedding:0.6b",
+    "llm": "qwen2.5:7b",
+    "chunk_tokens": 500,
+    "n_items": 10
+  },
+  "retrieval": {
+    "hit": 1.0,
+    "mrr": 1.0,
+    "context_recall": 1.0,
+    "n": 7
+  },
+  "refusal": {
+    "correct_refusal": 1.0,
+    "false_refusal": 0.0,
+    "n_out_of_scope": 3,
+    "n_in_scope": 7
+  }
+}

@@ -110,7 +110,7 @@ ChromaDB **embedded** — отдельного сервиса не требуе�
 ## 5. Воспроизводимость (чек-лист)
 
 - [x] `requirements.txt` с пиннингом версий
-- [x] зафиксированные теги моделей (`intfloat/multilingual-e5-base`, `qwen2.5:7b`)
+- [x] зафиксированные теги моделей (`qwen3-embedding:0.6b` / `intfloat/multilingual-e5-base`, `qwen2.5:7b`)
 - [x] `seed=42`, `temperature ≤ 0.2`
 - [x] QA-набор и параметры `tau` в репозитории
 - [x] каждый запуск eval пишет полный набор параметров в `reports/metrics.json`
@@ -127,5 +127,5 @@ ChromaDB **embedded** — отдельного сервиса не требуе�
 | Режим | Минимум |
 |---|---|
 | Разработка (CPU, light) | 8 GB RAM, `qwen2.5:3b` + MiniLM |
-| Полный локальный | 16 GB RAM / 8 GB VRAM, `qwen2.5:7b` + e5-base |
+| Полный локальный (CPU) | 16 GB RAM, `qwen2.5:7b` (~6.5 tok/s) + `qwen3-embedding:0.6b` |
 | Docker | Docker 24+, Compose v2; GPU — NVIDIA Container Toolkit |

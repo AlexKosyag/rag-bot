@@ -1,12 +1,15 @@
 # Конфигурация RAG-бота. Документация: docs/architecture.md
 models:
-  embedding: intfloat/multilingual-e5-base   # light-fallback: sentence-transformers/multilingual-MiniLM-L12-v2
-  llm: qwen2.5:7b                            # Ollama tag; CPU-fallback: qwen2.5:3b
-  device: cpu                                # cpu | cuda
+  # Бэкенд эмбеддингов: ollama (когда Hugging Face недоступен) либо
+  # sentence_transformers (основной, напр. intfloat/multilingual-e5-base)
+  embedding_backend: ollama
+  embedding: qwen3-embedding:0.6b    # ST-вариант: intfloat/multilingual-e5-base
+  llm: qwen2.5:7b                    # Ollama tag; CPU-fallback: qwen2.5:3b
+  device: cpu                        # только для sentence_transformers: cpu | cuda
 
 retrieval:
   top_k: 5                 # 3..10, правится в админке
-  threshold: 0.55          # порог отказа tau (калибровать на dev! см. docs/evaluation.md)
+  threshold: 0.50          # порог отказа tau (откалиброван на dev: child-score, скан 2026-10; см. docs/evaluation.md)
   delta: 0.05              # мин. разрыв top1-top2 (низкий -> осторожный ответ)
 
 chunking:
@@ -17,7 +20,7 @@ chunking:
 generation:
   temperature: 0.2
   max_tokens: 700
-  timeout_s: 90
+  timeout_s: 600          # CPU-only: 7B даёт ~6.5 tok/s, длинный ответ может идти минутами
 
 paths:
   raw_dir: data/raw

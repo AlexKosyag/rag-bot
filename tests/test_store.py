@@ -82,3 +82,30 @@ def test_registry_lifecycle(tmp_path: Path):
 
     reg.delete(doc_id)
     assert reg.list() == []
+
+
+def test_registry_chunks_lifecycle(tmp_path: Path):
+    reg = Registry(tmp_path / "registry.db")
+    doc_id = reg.upsert("a.md", "sha1", "ready", chunks_count=2)
+    reg.save_chunks([
+        {"id": f"{doc_id}:0", "doc_id": doc_id, "chunk_index": 0,
+         "heading": "Раздел 1", "page": 0, "text": "текст первого чанка"},
+        {"id": f"{doc_id}:1", "doc_id": doc_id, "chunk_index": 1,
+         "heading": "Раздел 2", "page": 2, "text": "текст второго чанка"},
+    ])
+
+    got = reg.get_chunks([f"{doc_id}:0", f"{doc_id}:1", "missing"])
+    assert set(got) == {f"{doc_id}:0", f"{doc_id}:1"}
+    assert got[f"{doc_id}:1"]["page"] == 2
+    assert got[f"{doc_id}:0"]["text"] == "текст первого чанка"
+
+    # delete_chunks — при переиндексации; delete — каскадно на удалении документа
+    reg.delete_chunks(doc_id)
+    assert reg.get_chunks([f"{doc_id}:0"]) == {}
+
+    reg.save_chunks([
+        {"id": f"{doc_id}:0", "doc_id": doc_id, "chunk_index": 0,
+         "heading": "H", "page": 0, "text": "T"},
+    ])
+    reg.delete(doc_id)
+    assert reg.get_chunks([f"{doc_id}:0"]) == {}

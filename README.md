@@ -14,9 +14,9 @@
 
 | Слой | Решение |
 |---|---|
-| Эмбеддинги | `intfloat/multilingual-e5-base` (768-dim, окно 512 токенов) |
+| Эмбеддинги | Ollama `qwen3-embedding:0.6b` (1024-dim) — активный бэкенд; при доступе HF: `intfloat/multilingual-e5-base` (768-dim, окно 512 токенов) |
 | LLM | `Qwen2.5-7B-Instruct` через Ollama (fallback: `qwen2.5:3b`, API) |
-| Векторное хранилище | ChromaDB (embedded, cosine) + SQLite-реестр |
+| Поиск | **small-to-big**: child-абзацы в Chroma (cosine, exact) → группировка в parent-чанки ~500 токенов из SQLite |
 | Интерфейс | Streamlit: чат с источниками + админка |
 | Оценка | Hit@k / MRR / Context Recall + refusal-метрики + LLM-as-judge |
 
@@ -26,8 +26,9 @@
 # 1. Зависимости
 pip install -r requirements.txt
 
-# 2. LLM (Ollama: https://ollama.com)
+# 2. Модели (Ollama: https://ollama.com)
 ollama pull qwen2.5:7b
+ollama pull qwen3-embedding:0.6b
 
 # 3. Конфиг (при необходимости)
 cp .env.example .env
@@ -45,6 +46,9 @@ streamlit run app.py
 # retrieval + метрики отказов (без LLM, быстро)
 python -m src.evaluate --qa data/qa/test.json
 
+# калибровка порога tau на dev-наборе (по сетке, максимум F1)
+python -m src.evaluate --calibrate --qa data/qa/dev.json
+
 # + генерация ответов, latency и Faithfulness
 python -m src.evaluate --qa data/qa/test.json --llm --judge
 ```
@@ -54,7 +58,7 @@ python -m src.evaluate --qa data/qa/test.json --llm --judge
 ## Тесты и линт
 
 ```bash
-pytest -q        # 29 тестов: чанкер, порог отказа, парсер, метрики, хранилище
+pytest -q        # 35 тестов: чанкер, поиск, порог отказа, парсер, метрики, хранилище
 ruff check src tests app.py
 ```
 
@@ -65,11 +69,11 @@ app.py                  # Streamlit: чат + админка
 config.yaml             # модели, top_k, порог, чанкинг
 src/
   config.py             # конфиг (yaml + .env)
-  embedder.py           # sentence-transformers, префиксы E5, нормализация
-  store.py              # Chroma (чанки) + SQLite (реестр документов)
+  embedder.py           # два бэкенда (Ollama / sentence-transformers), префиксы E5, нормализация
+  store.py              # Chroma (child-фрагменты) + SQLite (документы, parent-чанки)
   engine.py             # ретрив -> порог -> промпт -> LLM
   ingest/               # парсер, структурный чанкер, индексатор (+ CLI)
-  retrieve/             # top-k поиск, порог отказа
+  retrieve/             # small-to-big поиск (child -> parent), порог отказа
   generate/             # промпт, сборка контекста, ссылки
   llm/                  # клиент Ollama (стриминг)
   evaluate/             # метрики, judge, CLI
@@ -83,10 +87,16 @@ docs/                   # документация проекта
 
 ## Статус MVP
 
-Работает end-to-end: парсинг → чанкинг → эмбеддинги → Chroma → порог отказа →
-стриминговый ответ с источниками → админка → eval-скрипт.
+Работает end-to-end: парсинг → структурный чанкинг → эмбеддинги child-фрагментов →
+Chroma → группировка в parent-чанки → порог отказа → стриминговый ответ с
+источниками → админка → eval-скрипт.
+
+Фактические метрики на демо-корпусе (held-out test-набор, 14 вопросов, τ=0.50
+с калибровки на dev): **Hit@5 = 1.0 · MRR = 1.0 · Context Recall = 1.0 ·
+Correct Refusal = 1.0 · False Refusal = 0.0**. Faithfulness (LLM-as-judge) и
+latency — в `reports/metrics-test.json`.
 
 Дemo-корпус — 4 синтетических документа и 24 QA (ТЗ требует 50+ документов и 60+
 вопросов: масштабирование — положить файлы в `data/raw/` и дополнить `data/qa/*.json`).
-Калибровка порога `tau`, эксперименты с размером чанка и baseline «Qwen без RAG» —
-по плану из [docs/evaluation.md](docs/evaluation.md).
+Baseline «Qwen без RAG» и эксперименты с размером чанка — по плану из
+[docs/evaluation.md](docs/evaluation.md).

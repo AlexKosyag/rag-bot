@@ -8,7 +8,8 @@
 
 | Роль | Модель / технология |
 |---|---|
-| Эмбеддинги (основная) | `intfloat/multilingual-e5-base` (768-dim, окно 512 токенов) |
+| Эмбеддинги (основная) | `intfloat/multilingual-e5-base` (768-dim, окно 512 токенов) — при доступе Hugging Face |
+| Эмбеддинги (активный бэкенд) | Ollama `qwen3-embedding:0.6b` (1024-dim) — включён: CDN Hugging Face недоступен из среды |
 | Эмбеддинги (лёгкая, fallback) | `sentence-transformers/multilingual-MiniLM-L12-v2` (384-dim, окно **128** токенов) |
 | Генерация ответов | `Qwen2.5-7B-Instruct` (через Ollama), fallback: `qwen2.5:3b` / OpenAI-совместимый API |
 | Векторное хранилище | **ChromaDB** (embedded, персистентная) — *замена PostgreSQL + pgvector* |

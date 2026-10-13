@@ -14,7 +14,12 @@ from pathlib import Path
 from src.config import load_config
 from src.engine import RagEngine
 from src.evaluate.judge import faithfulness_score
-from src.evaluate.metrics import aggregate_retrieval, percentile, refusal_metrics
+from src.evaluate.metrics import (
+    aggregate_retrieval,
+    calibrate_threshold,
+    percentile,
+    refusal_metrics,
+)
 from src.generate.answer import build_context
 
 
@@ -35,6 +40,10 @@ def main() -> None:
     parser.add_argument("--llm", action="store_true", help="генерировать ответы")
     parser.add_argument("--judge", action="store_true", help="Faithfulness (LLM-as-judge)")
     parser.add_argument("--out", default=None, help="куда записать отчёт json")
+    parser.add_argument(
+        "--calibrate", action="store_true",
+        help="подбор tau по сетке (по умолчанию QA = dev.json), без генерации",
+    )
     args = parser.parse_args()
     if args.judge:
         args.llm = True
@@ -43,6 +52,37 @@ def main() -> None:
     engine = RagEngine.from_config(cfg)
     k = args.k or cfg.retrieval.top_k
     tau = args.tau if args.tau is not None else cfg.retrieval.threshold
+
+    # ---------------------------------------------------------- калибровка
+    if args.calibrate:
+        qa_path = Path(args.qa) if args.qa else cfg.paths.qa_dir / "dev.json"
+        items = load_qa(qa_path)
+        print(f"Калибровка tau: {qa_path} ({len(items)} вопросов), top_k={k}")
+        scores: list[dict] = []
+        for i, item in enumerate(items, 1):
+            prepared = engine.prepare(item["question"], top_k=k)
+            scores.append({
+                "score": round(prepared.decision.max_score, 4),
+                "expect_refusal": item["expect_refusal"],
+            })
+            print(f"  [{i}/{len(items)}] {item['id']}: score={scores[-1]['score']:.3f}")
+        table, best_tau = calibrate_threshold(scores)
+        for row in table:
+            mark = " <== лучший" if row["tau"] == best_tau else ""
+            if row["f1"] > 0 or mark:
+                print(f"  tau={row['tau']:.2f} correct={row['correct_refusal']} "
+                      f"false={row['false_refusal']} f1={row['f1']}{mark}")
+        out = cfg.paths.reports_dir / "tau-calibration.json"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
+            json.dumps({"qa": str(qa_path), "k": k, "best_tau": best_tau,
+                        "scores": scores, "grid": table},
+                       ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"Лучший tau={best_tau} (перенесите в config.yaml: "
+              f"retrieval.threshold). Таблица: {out}")
+        return
 
     qa_path = Path(args.qa) if args.qa else cfg.paths.qa_dir / "test.json"
     items = load_qa(qa_path)

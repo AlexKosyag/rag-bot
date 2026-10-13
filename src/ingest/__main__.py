@@ -5,7 +5,7 @@ import argparse
 import logging
 
 from src.config import load_config
-from src.embedder import Embedder
+from src.embedder import create_embedder
 from src.ingest.indexer import index_directory
 from src.store import Registry, VectorStore
 
@@ -18,7 +18,7 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = load_config()
-    embedder = Embedder(cfg.models.embedding, cfg.models.device)
+    embedder = create_embedder(cfg)
     store = VectorStore(cfg.paths.chroma_dir)
     registry = Registry(cfg.paths.registry_db)
 
