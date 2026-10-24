@@ -19,5 +19,15 @@
     "false_refusal": 0.0,
     "n_out_of_scope": 3,
     "n_in_scope": 11
+  },
+  "generation": {
+    "generated": 11,
+    "model_refusals_on_answerable": 1,
+    "latency_ms": {
+      "p50": 195099.476,
+      "p95": 231682.654
+    },
+    "faithfulness_mean": 0.8182,
+    "faithfulness_n": 11
   }
 }

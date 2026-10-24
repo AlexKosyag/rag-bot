@@ -36,6 +36,20 @@ def build_messages(query: str, hits: list[Hit]) -> list[dict]:
     ]
 
 
+BASELINE_SYSTEM_PROMPT = """Ты — ассистент по внутренним документам организации.
+Отвечай на вопрос сотрудника из своих знаний. Если ты не знаешь ответа
+или не уверен — ответь ровно «Нет в документах.»
+Кратко (до 5 предложений), на языке вопроса."""
+
+
+def build_baseline_messages(query: str) -> list[dict]:
+    """Baseline «Qwen без RAG»: тот же вызов, но без контекста и без порога."""
+    return [
+        {"role": "system", "content": BASELINE_SYSTEM_PROMPT},
+        {"role": "user", "content": f"Вопрос: {query}\n\nОтветь на вопрос."},
+    ]
+
+
 def looks_like_refusal(answer: str) -> bool:
     """Модель ответила отказом, хотя score прошёл порог (ложный отказ)."""
     a = answer.strip().lower().rstrip(".!")

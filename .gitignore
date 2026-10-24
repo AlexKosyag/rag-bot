@@ -8,6 +8,8 @@ __pycache__/
 # Данные (не коммитятся)
 data/chroma/
 data/registry.db
+data/exp/
+reports/*.log
 # data/raw/*.md — демо-корпус коммитится; загруженные через админку файлы
 # добавляйте в .gitignore точечно или храните вне репозитория
 

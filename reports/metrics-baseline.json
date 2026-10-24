@@ -1,0 +1,24 @@
+{
+  "params": {
+    "qa": "data\\qa\\test.json",
+    "mode": "baseline_no_rag",
+    "llm": "qwen2.5:7b",
+    "n_items": 14
+  },
+  "refusal": {
+    "correct_refusal": 0.6667,
+    "false_refusal": 0.0,
+    "n_out_of_scope": 3,
+    "n_in_scope": 11
+  },
+  "generation": {
+    "generated": 12,
+    "model_refusals": 2,
+    "latency_ms": {
+      "p50": 31592.474,
+      "p95": 57179.95
+    },
+    "correctness_mean": 0.5,
+    "correctness_n": 11
+  }
+}

@@ -21,19 +21,50 @@ JUDGE_PROMPT = """Оцени, насколько ответ подтверждё
 
 Ответь одним числом: 0, 1 или 2."""
 
+CORRECTNESS_PROMPT = """Оцени правильность ответа ассистента относительно эталонного ответа.
+
+Вопрос: {question}
+
+Эталонный ответ: {gold}
+
+Ответ ассистента: {answer}
+
+Критерии:
+2 — ответ фактически совпадает с эталоном (допустима перефразировка);
+1 — ответ не противоречит эталону, но неполон или с лишними деталями;
+0 — ответ противоречит эталону, неверен или уходит в выдумки.
+
+Ответь одним числом: 0, 1 или 2."""
+
 
 def _parse_score(text: str) -> int:
     m = re.search(r"\b([012])\b", text.strip())
     return int(m.group(1)) if m else 0
 
 
-def faithfulness_score(question: str, context: str, answer: str,
-                       llm: OllamaClient) -> int:
+def _judge_score(prompt: str, llm: OllamaClient) -> int:
     """0/1/2; при ошибке LLM — 0 (консервативно)."""
-    prompt = JUDGE_PROMPT.format(question=question, context=context[:6000],
-                                 answer=answer[:2000])
     try:
         raw = llm.complete([{"role": "user", "content": prompt}])
     except Exception:
         return 0
     return _parse_score(raw)
+
+
+def faithfulness_score(question: str, context: str, answer: str,
+                       llm: OllamaClient) -> int:
+    return _judge_score(
+        JUDGE_PROMPT.format(question=question, context=context[:6000],
+                            answer=answer[:2000]),
+        llm,
+    )
+
+
+def correctness_score(question: str, gold: str, answer: str,
+                      llm: OllamaClient) -> int:
+    """Правильность относительно эталонного ответа (baseline и RAG)."""
+    return _judge_score(
+        CORRECTNESS_PROMPT.format(question=question, gold=gold[:1000],
+                                  answer=answer[:2000]),
+        llm,
+    )

@@ -1,0 +1,105 @@
+{
+  "params": {
+    "qa": "data\\qa\\test.json",
+    "tau": 0.5,
+    "k_max": 8,
+    "embedding": "qwen3-embedding:0.6b",
+    "n_items": 14,
+    "note": "retrieval+refusal, без генерации LLM; tau откалиброван при chunk=500"
+  },
+  "runs": [
+    {
+      "retrieval": {
+        "3": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "context_recall": 0.9545,
+          "n": 11
+        },
+        "5": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "context_recall": 1.0,
+          "n": 11
+        },
+        "8": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "context_recall": 1.0,
+          "n": 11
+        }
+      },
+      "refusal": {
+        "correct_refusal": 1.0,
+        "false_refusal": 0.0,
+        "n_out_of_scope": 3,
+        "n_in_scope": 11
+      },
+      "chunk_tokens": 256,
+      "n_children": 41,
+      "index": "C:\\Users\\User\\Desktop\\rag-bot\\data\\exp\\chroma-256"
+    },
+    {
+      "retrieval": {
+        "3": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "context_recall": 1.0,
+          "n": 11
+        },
+        "5": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "context_recall": 1.0,
+          "n": 11
+        },
+        "8": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "context_recall": 1.0,
+          "n": 11
+        }
+      },
+      "refusal": {
+        "correct_refusal": 1.0,
+        "false_refusal": 0.0,
+        "n_out_of_scope": 3,
+        "n_in_scope": 11
+      },
+      "chunk_tokens": 500,
+      "n_children": 41,
+      "index": "C:\\Users\\User\\Desktop\\rag-bot\\data\\chroma"
+    },
+    {
+      "retrieval": {
+        "3": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "context_recall": 1.0,
+          "n": 11
+        },
+        "5": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "context_recall": 1.0,
+          "n": 11
+        },
+        "8": {
+          "hit": 1.0,
+          "mrr": 1.0,
+          "context_recall": 1.0,
+          "n": 11
+        }
+      },
+      "refusal": {
+        "correct_refusal": 1.0,
+        "false_refusal": 0.0,
+        "n_out_of_scope": 3,
+        "n_in_scope": 11
+      },
+      "chunk_tokens": 1024,
+      "n_children": 41,
+      "index": "C:\\Users\\User\\Desktop\\rag-bot\\data\\exp\\chroma-1024"
+    }
+  ]
+}

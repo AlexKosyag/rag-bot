@@ -92,11 +92,25 @@ Chroma → группировка в parent-чанки → порог отказ
 источниками → админка → eval-скрипт.
 
 Фактические метрики на демо-корпусе (held-out test-набор, 14 вопросов, τ=0.50
-с калибровки на dev): **Hit@5 = 1.0 · MRR = 1.0 · Context Recall = 1.0 ·
-Correct Refusal = 1.0 · False Refusal = 0.0**. Faithfulness (LLM-as-judge) и
-latency — в `reports/metrics-test.json`.
+с калибровки на dev):
+
+| Метрика | RAG | Цель ТЗ |
+|---|---|---|
+| Hit@5 / MRR / Context Recall | **1.0 / 1.0 / 1.0** | ≥0.85 / — / ≥0.8 |
+| Faithfulness (LLM-as-judge, n=11) | **0.82** | ≥0.8 |
+| Correct Refusal / False Refusal | **1.0 / 0.0** | ≥0.8 / ≤0.15 |
+| latency p50 / p95 (CPU-only, 7B) | 195 с / 232 с | — |
+
+Baseline «Qwen без RAG» на тех же вопросах: правильность ответов 0.50 (judge),
+Correct Refusal 0.67 (галлюцинация на одном из трёх «вне-базовых»), p50 32 с.
+RAG превосходит baseline по Faithfulness (0.82 против ответов «на память» с
+правильностью 0.50) и Correct Refusal (1.0 против 0.67) при сопоставимой доле
+ответов (79% против 86% — у RAG часть запросов отсекает порог τ).
+Отчёты: `reports/metrics-test.json`, `reports/metrics-baseline.json`,
+`reports/tau-calibration.json`, `reports/experiments.json`
+(эксперименты chunk 256/500/1024 × top_k 3/5/8: Hit@5 = 1.0 везде — корпус
+мал для различий, выбран баланс chunk=500; `python -m src.evaluate.experiments`).
 
 Дemo-корпус — 4 синтетических документа и 24 QA (ТЗ требует 50+ документов и 60+
 вопросов: масштабирование — положить файлы в `data/raw/` и дополнить `data/qa/*.json`).
-Baseline «Qwen без RAG» и эксперименты с размером чанка — по плану из
-[docs/evaluation.md](docs/evaluation.md).
+Протокол оценки и критерии приёмки — в [docs/evaluation.md](docs/evaluation.md).
