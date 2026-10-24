@@ -1,0 +1,35 @@
+{
+  "params": {
+    "qa": "data\\qa\\test.json",
+    "k": 5,
+    "tau": 0.5,
+    "embedding": "qwen3-embedding:0.6b",
+    "llm": "qwen2.5:7b",
+    "chunk_tokens": 500,
+    "n_items": 14
+  },
+  "retrieval": {
+    "hit": 1.0,
+    "mrr": 1.0,
+    "context_recall": 1.0,
+    "n": 11
+  },
+  "refusal": {
+    "correct_refusal": 1.0,
+    "false_refusal": 0.0,
+    "n_out_of_scope": 3,
+    "n_in_scope": 11
+  },
+  "generation": {
+    "generated": 11,
+    "model_refusals_on_answerable": 1,
+    "latency_ms": {
+      "p50": 26054.068,
+      "p95": 161546.585
+    },
+    "faithfulness_mean": 0.8182,
+    "faithfulness_n": 11,
+    "correctness_mean": 0.9091,
+    "correctness_n": 11
+  }
+}

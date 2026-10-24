@@ -75,14 +75,22 @@ Qwen2.5-7B (с оговоркой о self-preference bias в отчёте), пр
 (без контекста и порога; вместо Faithfulness — judge-правильность относительно
 gold, т.к. контекста нет).
 
-Итоговая таблица отчёта:
+Итоговая таблица отчёта (test, 14 вопросов, 2026-10-24, judge = qwen2.5:7b):
 
-| Конфигурация | Answer % | Faithfulness | Correct Refusal | False Refusal | p50, с |
-|---|---|---|---|---|---|
-| Qwen без RAG (baseline) | | | | | |
-| RAG (наша система) | | | | | |
+| Конфигурация | Answer % | Faithfulness | Правильность vs gold | Correct Refusal | False Refusal | p50, с |
+|---|---|---|---|---|---|---|
+| Qwen без RAG (baseline) | 86% (12/14) | n/a (нет контекста) | 0.50 | 0.67 | 0.00 | 32 |
+| RAG (наша система) | 79% (11/14) | 0.82 | 0.91 | 1.00 | 0.00 | 195 (холод.) / 26 (кэш) |
 
-Ожидание: RAG заметно ↑ Faithfulness и Correct Refusal при сопоставимом Answer Rate.
+Вывод: RAG превосходит baseline по Faithfulness и доле галлюцинаций —
+правильность 0.91 против 0.50, Correct Refusal 1.0 против 0.67 — при
+сопоставимой доле ответов. Меньший Answer % у RAG — порог τ отсекает
+«вне-базовые» запросы (осознанный компромисс «не отвечать, чем галлюцинировать»).
+Latency: холодный прогон (загрузка 5-гб модели в Ollama) p50 ≈ 195 с;
+повторный с тёплым prompt cache p50 ≈ 26 с; на GPU ожидается секунды.
+Источники: `reports/metrics-test.json` (retrieval+judge),
+`reports/metrics-test-full.json` (то же + правильность),
+`reports/metrics-baseline.json`.
 
 ## 4. Эксперименты (для раздела «обоснование выбранного метода»)
 

@@ -103,10 +103,12 @@ Chroma → группировка в parent-чанки → порог отказ
 
 Baseline «Qwen без RAG» на тех же вопросах: правильность ответов 0.50 (judge),
 Correct Refusal 0.67 (галлюцинация на одном из трёх «вне-базовых»), p50 32 с.
-RAG превосходит baseline по Faithfulness (0.82 против ответов «на память» с
-правильностью 0.50) и Correct Refusal (1.0 против 0.67) при сопоставимой доле
-ответов (79% против 86% — у RAG часть запросов отсекает порог τ).
-Отчёты: `reports/metrics-test.json`, `reports/metrics-baseline.json`,
+RAG: правильность **0.91 против 0.50**, Faithfulness 0.82 (у baseline n/a —
+нет контекста), Correct Refusal 1.0 против 0.67 при сопоставимой доле ответов
+(79% против 86% — у RAG часть запросов отсекает порог τ). Latency: холодный
+прогон p50 195 с (загрузка модели в Ollama), с тёплым prompt cache — 26 с.
+Отчёты: `reports/metrics-test.json`, `reports/metrics-test-full.json`
+(с правильностью), `reports/metrics-baseline.json`,
 `reports/tau-calibration.json`, `reports/experiments.json`
 (эксперименты chunk 256/500/1024 × top_k 3/5/8: Hit@5 = 1.0 везде — корпус
 мал для различий, выбран баланс chunk=500; `python -m src.evaluate.experiments`).
