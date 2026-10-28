@@ -79,6 +79,30 @@
       "gold_docs": ["reglament-otpuska.md"],
       "type": "factual",
       "expect_refusal": false
+    },
+    {
+      "id": "dev_11",
+      "question": "Что включает основная надпись по ГОСТ 2.104?",
+      "gold_answer": "Наименование документа, обозначение, литера, стадия, подписи разработчика/проверяющего/утверждающего с датами",
+      "gold_docs": ["gost-2-104-eskd.md", "standart-eskd.md"],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_12",
+      "question": "Какова допустимая утечка СОЖ на станке?",
+      "gold_answer": "Утечка СОЖ не допускается (ГОСТ 12.2.003-91)",
+      "gold_docs": ["gost-12-2-003-stanki.pdf"],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_13",
+      "question": "Какова средняя зарплата программиста в компании?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
     }
   ]
 }

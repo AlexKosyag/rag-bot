@@ -164,33 +164,39 @@ def main() -> None:
     latencies: list[float] = []
     faithfulness: list[int] = []
     correctness: list[int] = []
-    model_refusals = 0
+    tool_calls_total = 0
     generated = 0
 
     for i, item in enumerate(items, 1):
         q = item["question"]
-        prepared = engine.prepare(q, top_k=k, tau=tau)
-        ranked = [h.doc_name for h in prepared.retrieval.hits]
-        refused = not prepared.decision.answer
+        prepared = engine.prepare_agent(q, top_k=k, tau=tau)
+        ranked = [h.doc_name for h in prepared.hits]
+
+        # Отказ определяется по ответу модели (делегирован); для retrieval-only
+        # прогона (без --llm) — по порогу
+        if args.llm:
+            t0 = time.perf_counter()
+            answer = engine.answer_agent(prepared)
+            latencies.append((time.perf_counter() - t0) * 1000)
+            refused = engine.answer_is_refusal(answer)
+        else:
+            answer = None
+            refused = not any(s.answer for s in prepared.steps)
 
         refusal_rows.append({"expect_refusal": item["expect_refusal"], "refused": refused})
+        tool_calls_total += prepared.tool_calls
         if item["gold_docs"]:
             retrieval_rows.append({"ranked": ranked, "gold": item["gold_docs"]})
 
-        status = f"refused({prepared.decision.reason})" if refused else \
-            f"answer(max={prepared.decision.max_score:.3f})"
+        status = f"refused(max={prepared.max_score:.3f})" if refused else \
+            f"answer(max={prepared.max_score:.3f}, tools={prepared.tool_calls})"
 
-        if args.llm and prepared.decision.answer:
-            t0 = time.perf_counter()
-            answer = engine.answer(prepared)
-            latencies.append((time.perf_counter() - t0) * 1000)
+        if args.llm and not refused:
             generated += 1
-            if engine.answer_is_refusal(answer):
-                model_refusals += 1
             if args.judge and not item["expect_refusal"]:
                 score = faithfulness_score(
                     q,
-                    build_context(prepared.retrieval.hits),
+                    build_context(prepared.hits),
                     answer,
                     engine.llm,
                 )
@@ -208,14 +214,18 @@ def main() -> None:
             "qa": str(qa_path), "k": k, "tau": tau,
             "embedding": cfg.models.embedding, "llm": cfg.models.llm,
             "chunk_tokens": cfg.chunking.size_tokens, "n_items": len(items),
+            "mode": "agentic",
         },
         "retrieval": aggregate_retrieval(retrieval_rows, k),
         "refusal": refusal_metrics(refusal_rows),
+        "agentic": {
+            "avg_tool_calls": round(tool_calls_total / max(len(items), 1), 2),
+            "max_tool_calls": cfg.agentic.max_tool_calls,
+        },
     }
     if args.llm:
         report["generation"] = {
             "generated": generated,
-            "model_refusals_on_answerable": model_refusals,
             "latency_ms": {
                 "p50": percentile(latencies, 50),
                 "p95": percentile(latencies, 95),

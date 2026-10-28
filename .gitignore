@@ -10,6 +10,8 @@ data/chroma/
 data/registry.db
 data/exp/
 reports/*.log
+*.log
+*.err
 # data/raw/*.md — демо-корпус коммитится; загруженные через админку файлы
 # добавляйте в .gitignore точечно или храните вне репозитория
 

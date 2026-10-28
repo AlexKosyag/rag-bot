@@ -22,6 +22,10 @@ generation:
   max_tokens: 700
   timeout_s: 600          # CPU-only: 7B даёт ~6.5 tok/s, длинный ответ может идти минутами
 
+agentic:
+  enabled: true           # агентный поиск: LLM вызывает search_documents поверх seed-ретрива
+  max_tool_calls: 3       # максимум вызовов инструмента за диалог (плюс seed всегда)
+
 paths:
   raw_dir: data/raw
   chroma_dir: data/chroma

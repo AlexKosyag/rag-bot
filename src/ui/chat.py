@@ -1,12 +1,10 @@
-"""Чат: стриминг ответа, источники, отказ «Нет в документах»."""
+"""Чат: стриминг агентного ответа, поиск, источники, отказ «Нет в документах»."""
 from __future__ import annotations
 
 import streamlit as st
 
-from src.engine import Prepared, RagEngine
+from src.engine import AgentPrepared, RagEngine
 from src.llm.client import LLMError
-
-ROLE_LABEL = {"ok": "ответ по контексту", "low_margin": "низкий разрыв top1-top2"}
 
 
 def _sources_block(sources: list[dict]) -> None:
@@ -31,8 +29,21 @@ def _fragments_block(sources: list[dict], max_score: float) -> None:
             st.caption(s["preview"] + "…")
 
 
+def _steps_block(steps: list[dict]) -> None:
+    if len(steps) <= 1:
+        return
+    with st.expander(f"🔍 Поиски агента ({len(steps)})"):
+        for s in steps:
+            icon = "🌱" if s["source"] == "seed" else "🔎"
+            st.markdown(
+                f"{icon} **{s['source']}** · query=`{s['query']}` · "
+                f"score `{s['max_score']:.3f}` · фрагментов `{s['n_hits']}`"
+            )
+
+
 def _render_assistant_message(msg: dict) -> None:
     st.markdown(msg["content"])
+    _steps_block(msg.get("steps", []))
     if msg.get("refused"):
         _fragments_block(msg.get("sources", []), msg.get("max_score", 0.0))
     elif msg.get("sources"):
@@ -66,40 +77,58 @@ def render_chat(engine: RagEngine) -> None:
             st.markdown(query)
 
         with st.chat_message("assistant"):
-            prepared: Prepared = engine.prepare(query)
-            d = prepared.decision
+            prepared: AgentPrepared = engine.prepare_agent(query)
+            steps_data = [
+                {
+                    "source": s.source,
+                    "query": s.query,
+                    "max_score": round(s.max_score, 3),
+                    "n_hits": s.n_hits,
+                }
+                for s in prepared.steps
+            ]
+            _steps_block(steps_data)
 
-            if not d.answer:
-                note = {
-                    "empty": "база пуста",
-                    "below_threshold": f"score {d.max_score:.3f} < порога {d.tau:.2f}",
-                }.get(d.reason, d.reason)
+            if not prepared.hits:
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": "Нет в документах.",
                     "refused": True,
-                    "sources": prepared.sources,
-                    "max_score": d.max_score,
-                    "note": note,
+                    "sources": [],
+                    "max_score": prepared.max_score,
+                    "steps": steps_data,
+                    "note": "база пуста или нет фрагментов",
                 })
-                _fragments_block(prepared.sources, d.max_score)
-                st.caption(f"ℹ️ {note}")
+                _fragments_block([], prepared.max_score)
+                st.caption("ℹ️ база пуста или нет фрагментов")
             else:
                 try:
-                    answer = st.write_stream(engine.stream(prepared))
+                    answer = st.write_stream(engine.stream_agent(prepared))
                 except LLMError as exc:
                     answer = ""
                     st.error(str(exc))
-                note = ROLE_LABEL.get(d.reason, "")
+
+                refused = engine.answer_is_refusal(answer or "")
                 sources = prepared.sources
+                note = ""
+                if refused:
+                    note = f"модель отказалась, лучший score {prepared.max_score:.3f}"
+                elif prepared.limit_hit:
+                    note = "лимит вызовов инструмента исчерпан"
+
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": answer or "_(пустой ответ)_",
-                    "refused": False,
-                    "sources": sources,
+                    "refused": refused,
+                    "sources": [] if refused else sources,
+                    "max_score": prepared.max_score,
+                    "steps": steps_data,
                     "note": note,
                 })
                 if answer:
-                    _sources_block(sources)
+                    if refused:
+                        _fragments_block(sources, prepared.max_score)
+                    else:
+                        _sources_block(sources)
                     if note:
                         st.caption(f"⚠️ {note}")

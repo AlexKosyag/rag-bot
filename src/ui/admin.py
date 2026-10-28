@@ -93,6 +93,14 @@ def _tab_params(engine: RagEngine, cfg: Config) -> None:
         st.caption(f"τ={r.threshold:.2f} · top_k={r.top_k} · delta={r.delta:.2f}")
         st.caption("⚠ τ нужно калибровать на dev-наборе — см. docs/evaluation.md")
 
+    st.subheader("Агентный поиск")
+    st.caption("LLM вызывает инструмент search_documents поверх seed-ретрива")
+    st.code(
+        f"enabled:       {cfg.agentic.enabled}\n"
+        f"max_tool_calls: {cfg.agentic.max_tool_calls}",
+        language="text",
+    )
+
     st.subheader("Модели")
     st.code(
         f"embedding: {cfg.models.embedding}\n"

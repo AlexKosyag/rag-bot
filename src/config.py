@@ -35,6 +35,14 @@ class ChunkingCfg:
 
 
 @dataclass
+class AgenticCfg:
+    """Агентный поиск: LLM вызывает инструменты поверх seed-ретрива."""
+
+    enabled: bool = True
+    max_tool_calls: int = 3
+
+
+@dataclass
 class GenerationCfg:
     temperature: float = 0.2
     max_tokens: int = 700
@@ -56,6 +64,7 @@ class Config:
     models: ModelsCfg = field(default_factory=ModelsCfg)
     retrieval: RetrievalCfg = field(default_factory=RetrievalCfg)
     chunking: ChunkingCfg = field(default_factory=ChunkingCfg)
+    agentic: AgenticCfg = field(default_factory=AgenticCfg)
     generation: GenerationCfg = field(default_factory=GenerationCfg)
     paths: PathsCfg = field(default_factory=PathsCfg)
 
@@ -76,6 +85,7 @@ def load_config(path: Path | str = CONFIG_PATH) -> Config:
     models = ModelsCfg(**raw.get("models", {}))
     retrieval = RetrievalCfg(**raw.get("retrieval", {}))
     chunking = ChunkingCfg(**raw.get("chunking", {}))
+    agentic = AgenticCfg(**raw.get("agentic", {}))
     generation = GenerationCfg(**raw.get("generation", {}))
     paths_raw = raw.get("paths", {})
     paths = PathsCfg(
@@ -92,7 +102,7 @@ def load_config(path: Path | str = CONFIG_PATH) -> Config:
         models.device = os.environ["RAG_EMBED_DEVICE"]
 
     return Config(models=models, retrieval=retrieval, chunking=chunking,
-                  generation=generation, paths=paths)
+                  agentic=agentic, generation=generation, paths=paths)
 
 
 def save_retrieval(cfg: Config, path: Path | str = CONFIG_PATH) -> None:

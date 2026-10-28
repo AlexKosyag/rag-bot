@@ -89,3 +89,44 @@ class OllamaClient:
         if "error" in data:
             raise LLMError(str(data["error"]))
         return data.get("message", {}).get("content", "")
+
+    def complete_with_tools(
+        self, messages: list[dict], tools: list[dict]
+    ) -> tuple[str, list[dict]]:
+        """Пакетный вызов с tool calling (Ollama /api/chat + tools).
+
+        Возвращает (content, tool_calls), где tool_calls —
+        [{"name": str, "args": dict}]; args приводятся к dict даже если
+        модель отдала их JSON-строкой.
+        """
+        payload = self._payload(messages, stream=False)
+        payload["tools"] = tools
+        try:
+            resp = requests.post(
+                f"{self.base_url}/api/chat",
+                json=payload,
+                timeout=(10, self.timeout_s),
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except requests.RequestException as exc:
+            raise LLMError(f"Не удалось вызвать LLM ({self.base_url}): {exc}") from exc
+        if "error" in data:
+            raise LLMError(str(data["error"]))
+        msg = data.get("message", {})
+        content = msg.get("content", "") or ""
+        calls: list[dict] = []
+        for tc in msg.get("tool_calls") or []:
+            fn = tc.get("function", {}) if isinstance(tc, dict) else {}
+            name = fn.get("name", "") or ""
+            args = fn.get("arguments", {})
+            if isinstance(args, str):
+                try:
+                    parsed = json.loads(args)
+                    args = parsed if isinstance(parsed, dict) else {"query": args}
+                except json.JSONDecodeError:
+                    args = {"query": args}
+            elif not isinstance(args, dict):
+                args = {}
+            calls.append({"name": name, "args": args})
+        return content, calls

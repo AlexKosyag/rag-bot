@@ -13,15 +13,18 @@ flowchart TB
         CHUNK --> REG[("SQLite<br/>документы + тексты parent-чанков")]
     end
 
-    subgraph QUERY["Онлайн-запрос"]
-        UI["Streamlit чат"] --> QEMB["Embedder запроса<br/>без префиксов (e5: 'query:')"]
+    subgraph QUERY["Онлайн-запрос (агентный)"]
+        UI["Streamlit чат"] --> SEED["Seed-поиск<br/>retrieve + gate (принудительно)"]
+        SEED --> QEMB["Embedder запроса<br/>без префиксов (e5: 'query:')"]
         QEMB --> RET["top-20 child-абзацов<br/>→ группировка в top-5 parent"]
         STORE --> RET
         REG --> RET
         RET --> GATE{"Порог отказа:<br/>max child score < τ ?"}
-        GATE -- "да" --> REFUSE["«Нет в документах»"]
-        GATE -- "нет" --> GEN["Qwen2.5-7B-Instruct<br/>промпт «только по контексту»"]
-        GEN --> ANSWER["Ответ + ссылки<br/>[документ, фрагмент]"]
+        GATE -- "да" --> REFUSE["Модель решает:<br/>отказ или перефразировать"]
+        GATE -- "нет" --> GEN["Qwen2.5-7B-Instruct<br/>tools: search_documents"]
+        GEN -- "tool_calls" --> RET
+        GEN -- "нет tool_calls" --> ANSWER["Ответ + ссылки<br/>[документ, фрагмент]"]
+        REFUSE --> GEN
     end
 
     subgraph EVAL["Оффлайн-оценка"]
@@ -51,20 +54,20 @@ flowchart TB
   по `doc_id` и записывает новые.
 - Состояние документа в реестре: `pending → indexing → ready | error` (+ текст ошибки).
 
-### 2. Запрос (онлайн, синхронный)
+### 2. Запрос (онлайн, агентный)
 
 ```
-вопрос → эмбеддинг → exact-поиск top-20 child-абзацов в Chroma
-       → группировка по parent-чанку (score родителя = лучший child)
-       → если max score < τ → отказ «Нет в документах»
-       → иначе → top-5 parent-текстов из SQLite → промпт → Qwen
-       → ответ + ссылки → Streamlit
+вопрос → seed-поиск (retrieve + gate, всегда) → top-5 parent-текстов
+       → LLM + tools: search_documents
+         ├─ model вызывает инструмент → retrieve + gate → результат в диалог → LLM
+         ├─ повтор ≤ max_tool_calls (3)
+         └─ финальный ответ → стриминг + ссылки
 ```
 
-- Поиск **плоский (exact)**: при 500–5000 child-фрагментов × 1024-dim скан по матрице занимает
-  единицы миллисекунд — индексы (HNSW/IVFFlat) не нужны. Это зафиксировано явно, чтобы
-  не тратить время на настройку приближённого поиска.
+- **Принудительный seed-поиск**: выполняется до вызова LLM, даже если модель не зовёт инструмент. Даёт гарантированный контекст для ответа или решения об отказе.
+- Поиск **плоский (exact)**: при 500–5000 child-фрагментов × 1024-dim скан по матрице занимает единицы миллисекунд. Индексы (HNSW/IVFFlat) не нужны.
 - Порог `τ` и `top_k` — настраиваемы в админке и хранятся в конфиге/сессии (см. [pipeline.md](pipeline.md)).
+- Решение об отказе делегировано модели: она видит score при пороге и может либо отказать, либо перефразировать запрос и найти документы точнее.
 
 ### 3. Оценка (оффлайн, воспроизводимый скрипт)
 
@@ -160,6 +163,9 @@ chunking:
   size_tokens: 500
   overlap_tokens: 50
   min_tokens: 50
+agentic:
+  enabled: true                               # агентный поиск (LLM + tools поверх seed-ретрива)
+  max_tool_calls: 3                           # максимум вызовов search_documents за диалог
 generation:
   temperature: 0.2
   max_tokens: 700
