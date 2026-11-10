@@ -25,6 +25,9 @@ class RetrievalCfg:
     top_k: int = 5
     threshold: float = 0.50
     delta: float = 0.05
+    hybrid: bool = True            # RRF-слияние векторного и BM25-поиска
+    rrf_k: int = 60                # константа Reciprocal Rank Fusion
+    reranker: str = "heuristic"    # off | heuristic | cross_encoder
 
 
 @dataclass
@@ -40,6 +43,7 @@ class AgenticCfg:
 
     enabled: bool = True
     max_tool_calls: int = 3
+    rewrite: bool = True           # query rewriting с учётом истории диалога
 
 
 @dataclass

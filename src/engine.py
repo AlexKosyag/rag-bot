@@ -3,10 +3,15 @@
 Принудительный первый поиск (seed) гарантирует контекст даже если LLM не
 зовёт инструмент; дальше модель сама решает, достаточно ли фрагментов или
 нужен дополнительный поиск (docs/pipeline.md).
+
+Перед seed-поиском опционально выполняется query rewriting — последний
+вопрос переписывается с учётом истории диалога («А в командировке?» ->
+полный запрос). Гибридный поиск (вектор + BM25, RRF) и реранкер
+включаются через config.yaml.
 """
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 
 from src.config import Config
@@ -19,6 +24,7 @@ from src.generate.answer import (
     looks_like_refusal,
     stream_answer,
 )
+from src.generate.rewrite import build_rewrite_messages, extract_rewritten
 from src.generate.tools import (
     SEARCH_TOOL,
     SEARCH_TOOL_NAME,
@@ -28,6 +34,7 @@ from src.generate.tools import (
 )
 from src.llm.client import OllamaClient
 from src.retrieve.gate import Decision, decide
+from src.retrieve.reranker import create_reranker
 from src.retrieve.search import RetrievalResult, retrieve
 from src.store import Hit, Registry, VectorStore
 
@@ -69,6 +76,7 @@ class AgentPrepared:
     tool_calls: int = 0
     limit_hit: bool = False
     direct_answer: str | None = None  # модель ответила без финальной генерации
+    rewritten: str = ""         # переписанный запрос (пусто — не переписывался)
 
     @property
     def sources(self) -> list[dict]:
@@ -87,6 +95,7 @@ class RagEngine:
         self.store = store
         self.llm = llm
         self.registry = registry
+        self.reranker = create_reranker(cfg.retrieval.reranker, cfg.models.device)
 
     @classmethod
     def from_config(cls, cfg: Config) -> "RagEngine":
@@ -98,16 +107,30 @@ class RagEngine:
         return cls(cfg, embedder, store, llm, registry)
 
     # ------------------------------------------------------------------ #
+    def _search(self, query: str, top_k: int, doc_ids: list[str] | None = None) -> RetrievalResult:
+        """Единая точка поиска: гибрид/RRF/реранкер из конфига."""
+        return retrieve(
+            query, self.embedder, self.store, top_k=top_k, doc_ids=doc_ids,
+            registry=self.registry,
+            hybrid=self.cfg.retrieval.hybrid,
+            rrf_k=self.cfg.retrieval.rrf_k,
+            reranker=self.reranker,
+        )
+
+    def rewrite_query(self, query: str, history: list[dict]) -> str:
+        """Переписать вопрос с учётом истории (пустая история -> исходный)."""
+        if not history or not self.cfg.agentic.rewrite:
+            return query
+        try:
+            out = self.llm.complete(build_rewrite_messages(query, history))
+            return extract_rewritten(out, query)
+        except Exception:
+            return query  # рерайтинг — оптимизация, не точка отказа
+
     def prepare(self, query: str, top_k: int | None = None,
                 tau: float | None = None) -> Prepared:
         """Одношаговый ретривер + порог отказа (калибровка tau, юнит-тесты)."""
-        r = retrieve(
-            query,
-            self.embedder,
-            self.store,
-            top_k=top_k or self.cfg.retrieval.top_k,
-            registry=self.registry,
-        )
+        r = self._search(query, top_k or self.cfg.retrieval.top_k)
         decision = decide(
             r,
             tau if tau is not None else self.cfg.retrieval.threshold,
@@ -117,29 +140,47 @@ class RagEngine:
         return Prepared(decision=decision, retrieval=r, messages=messages)
 
     # ------------------------------------------------------------------ #
-    def prepare_agent(self, query: str, top_k: int | None = None,
-                      tau: float | None = None) -> AgentPrepared:
+    def prepare_agent(
+        self,
+        query: str,
+        top_k: int | None = None,
+        tau: float | None = None,
+        history: list[dict] | None = None,
+        on_step: Callable[[AgentStep], None] | None = None,
+    ) -> AgentPrepared:
         """Принудительный seed-ретрив -> цикл tool calling -> готовый диалог.
 
         Первый поиск выполняется всегда (даже если LLM не зовёт инструмент).
         Далее модель вызывает search_documents до max_tool_calls раз либо
         отвечает сразу. messages содержат всё, финальная генерация — отдельно
         (stream_agent/answer_agent).
+
+        history — сообщения диалога для query rewriting; on_step — callback
+        для отрисовки шагов поиска в UI по мере их появления.
         """
         k = top_k or self.cfg.retrieval.top_k
         t = tau if tau is not None else self.cfg.retrieval.threshold
         delta = self.cfg.retrieval.delta
         max_calls = self.cfg.agentic.max_tool_calls
 
+        def _emit(step: AgentStep) -> None:
+            steps.append(step)
+            if on_step is not None:
+                on_step(step)
+
+        # 0. Query rewriting (только при непустой истории)
+        rewritten = self.rewrite_query(query, history or [])
+        search_q = rewritten or query
+
         # 1. Принудительный seed-поиск
-        seed = retrieve(query, self.embedder, self.store, top_k=k,
-                        registry=self.registry)
+        seed = self._search(search_q, k)
         seed_decision = decide(seed, t, delta)
-        steps = [AgentStep(
-            query=query, source="seed", max_score=seed.max_score, tau=t,
+        steps: list[AgentStep] = []
+        _emit(AgentStep(
+            query=search_q, source="seed", max_score=seed.max_score, tau=t,
             n_hits=len(seed.hits), answer=seed_decision.answer,
             hits=list(seed.hits),
-        )]
+        ))
         messages = build_agent_messages(query, seed.hits, seed.max_score, t)
         tool_calls = 0
         limit_hit = False
@@ -149,9 +190,10 @@ class RagEngine:
             # Агентный режим выключен: работаем как раньше (один ретрив + промпт)
             if seed_decision.answer:
                 return AgentPrepared(query=query, steps=steps, hits=all_hits,
-                                     messages=build_messages(query, seed.hits))
+                                     messages=build_messages(query, seed.hits),
+                                     rewritten=search_q if search_q != query else "")
             return AgentPrepared(query=query, steps=steps, hits=all_hits,
-                                 messages=[])
+                                 messages=[], rewritten=search_q if search_q != query else "")
 
         # 2. Цикл tool calling
         refusal_retries = 0
@@ -180,7 +222,8 @@ class RagEngine:
                                      hits=merge_hits(*[s.hits for s in steps]),
                                      messages=messages,
                                      tool_calls=tool_calls,
-                                     direct_answer=content)
+                                     direct_answer=content,
+                                     rewritten=search_q if search_q != query else "")
 
             # Подтверждаем вызов в диалоге (assistant с tool_calls)
             messages.append({
@@ -203,10 +246,14 @@ class RagEngine:
                     })
                     continue
                 call = ToolCall(name=name, args=call_dict.get("args", {}))
-                outcome = execute_search(call, self.embedder, self.store,
-                                         self.registry, k, t, delta)
+                outcome = execute_search(
+                    call, self.embedder, self.store, self.registry, k, t, delta,
+                    hybrid=self.cfg.retrieval.hybrid,
+                    rrf_k=self.cfg.retrieval.rrf_k,
+                    reranker=self.reranker,
+                )
                 tool_calls += 1
-                steps.append(AgentStep(
+                _emit(AgentStep(
                     query=outcome.call.args.get("query", ""),
                     source="tool",
                     max_score=outcome.decision.max_score,
@@ -228,7 +275,8 @@ class RagEngine:
         return AgentPrepared(query=query, steps=steps,
                              hits=merge_hits(*[s.hits for s in steps]),
                              messages=messages, tool_calls=tool_calls,
-                             limit_hit=limit_hit)
+                             limit_hit=limit_hit,
+                             rewritten=search_q if search_q != query else "")
 
     def stream_agent(self, prepared: AgentPrepared) -> Iterator[str]:
         """Потоковая финальная генерация агентного ответа."""

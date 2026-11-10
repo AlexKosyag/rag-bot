@@ -1,0 +1,3 @@
+scale-vector-only.json: hit@5=0.200 mrr=0.152 recall=0.200 CR=1.00 FR=0.25
+scale-hybrid.json: hit@5=0.823 mrr=0.481 recall=0.823 CR=1.00 FR=0.25
+scale-hybrid-rerank.json: hit@5=0.823 mrr=0.386 recall=0.823 CR=1.00 FR=0.25

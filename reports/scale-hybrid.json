@@ -1,0 +1,28 @@
+{
+  "params": {
+    "qa": "data\\qa\\scale.json",
+    "k": 5,
+    "tau": 0.5,
+    "embedding": "qwen3-embedding:0.6b",
+    "llm": "qwen2.5:7b",
+    "chunk_tokens": 500,
+    "n_items": 640,
+    "mode": "agentic"
+  },
+  "retrieval": {
+    "hit": 0.8233,
+    "mrr": 0.4807,
+    "context_recall": 0.8233,
+    "n": 600
+  },
+  "refusal": {
+    "correct_refusal": 1.0,
+    "false_refusal": 0.25,
+    "n_out_of_scope": 40,
+    "n_in_scope": 600
+  },
+  "agentic": {
+    "avg_tool_calls": 0.0,
+    "max_tool_calls": 3
+  }
+}

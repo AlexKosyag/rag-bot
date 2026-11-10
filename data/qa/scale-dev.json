@@ -1,0 +1,564 @@
+{
+  "items": [
+    {
+      "id": "dev_sc_0000",
+      "question": "Сколько составляет «отпуск» по документу РГ-2024-000?",
+      "gold_answer": "100 календарных дней",
+      "gold_docs": [
+        "hr-otpusk-000.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0007",
+      "question": "Какое допустимое отклонение от номинала по ГОСТ 2.104-2006?",
+      "gold_answer": "5 процентов",
+      "gold_docs": [
+        "gost-2-104-000.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0014",
+      "question": "Сколько человек в комиссии по приказу ПР-2025-000?",
+      "gold_answer": "3 человек",
+      "gold_docs": [
+        "prikaz-naznachenie-000.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0021",
+      "question": "В какой срок составляется авансовый отчёт по ФИ-2024-000?",
+      "gold_answer": "3 рабочих дней",
+      "gold_docs": [
+        "fin-komandirovki-000.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0028",
+      "question": "Как часто проводится повторный инструктаж по инструкции ИОТ-2026-001?",
+      "gold_answer": "не реже одного раза в 3 месяцев",
+      "gold_docs": [
+        "otrud-frez-001.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0035",
+      "question": "Какой размер компенсации установлен документом FAQ-2026-001?",
+      "gold_answer": "до 98000 рублей",
+      "gold_docs": [
+        "faq-proizvodstvo-001.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0042",
+      "question": "Сколько символов минимум в пароле по политике ИБ-2026-001?",
+      "gold_answer": "не менее 12 символов",
+      "gold_docs": [
+        "ib-skud-001.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0049",
+      "question": "Какой процент выплаты установлен документом РГ-2026-002?",
+      "gold_answer": "70 процентов",
+      "gold_docs": [
+        "hr-premiya-002.pdf"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0056",
+      "question": "Какой минимальный стаж требуется для должности по ДИ-2026-002?",
+      "gold_answer": "не менее 3 лет",
+      "gold_docs": [
+        "dolzhn-kontroler-002.pdf"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0063",
+      "question": "Какой срок исполнения приказа ПР-2025-002?",
+      "gold_answer": "5 рабочих дней",
+      "gold_docs": [
+        "prikaz-komissiya-002.docx"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0070",
+      "question": "Какой класс опасности отходов установлен ЭК-2026-002?",
+      "gold_answer": "I",
+      "gold_docs": [
+        "eco-voda-002.pdf"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0077",
+      "question": "Какова продолжительность перерывов на отдых по ИОТ-2026-003?",
+      "gold_answer": "20 минут",
+      "gold_docs": [
+        "otrud-operator-cpu-003.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0084",
+      "question": "Какой срок хранения документов установлен стандартом СТ-2024-003?",
+      "gold_answer": "7 лет",
+      "gold_docs": [
+        "standart-eskd-003.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0091",
+      "question": "Как часто нужно менять пароль по ИБ-2026-003?",
+      "gold_answer": "не реже одного раза в 90 дней",
+      "gold_docs": [
+        "ib-pochta-003.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0098",
+      "question": "Какое базовое значение «температуры отпуска» установлено регламентом ТК-2025-004?",
+      "gold_answer": "400 °C",
+      "gold_docs": [
+        "prod-termo-004.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0105",
+      "question": "Какая продолжительность рабочего времени установлена ДИ-2025-004?",
+      "gold_answer": "44 часов в неделю",
+      "gold_docs": [
+        "dolzhn-metrolog-004.docx"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0112",
+      "question": "Какая норма расхода ресурса установлена АХ-2025-004?",
+      "gold_answer": "1 единиц в сутки на объект",
+      "gold_docs": [
+        "aho-propuska-004.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0119",
+      "question": "Какова периодичность контрольного замера по ЭК-2025-004?",
+      "gold_answer": "не реже одного раза в 12 месяцев",
+      "gold_docs": [
+        "eco-stazhirovka-004.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0126",
+      "question": "Какое нормируемое значение «количества огнетушителей» установлено стандартом ГОСТ 12.1.004-91?",
+      "gold_answer": "2 на этаж",
+      "gold_docs": [
+        "gost-12-1-004-005.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0133",
+      "question": "Какой срок исполнения по документам СТ-2026-005?",
+      "gold_answer": "10 рабочих дней",
+      "gold_docs": [
+        "standart-zakupki-005.pdf"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0140",
+      "question": "Какой размер суточных установлен ФИ-2026-005?",
+      "gold_answer": "1000 рублей",
+      "gold_docs": [
+        "fin-komandirovki-005.pdf"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0147",
+      "question": "Какой допуск по обрабатываемому размеру в ТК-2024-006?",
+      "gold_answer": "0.1 мм",
+      "gold_docs": [
+        "prod-galvan-006.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0154",
+      "question": "Какой срок рассмотрения заявления по документу FAQ-2025-006?",
+      "gold_answer": "5 рабочих дней",
+      "gold_docs": [
+        "faq-obuchenie-006.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0161",
+      "question": "Как часто проводится плановое обслуживание по АХ-2024-006?",
+      "gold_answer": "не реже одного раза в 10 дней",
+      "gold_docs": [
+        "aho-otoplenie-006.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0168",
+      "question": "Сколько составляет «срок предупреждения о переводе» по документу РГ-2025-007?",
+      "gold_answer": "7 рабочих дней",
+      "gold_docs": [
+        "hr-perevod-007.docx"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0175",
+      "question": "Какое допустимое отклонение от номинала по ГОСТ 19903-2015?",
+      "gold_answer": "10 процентов",
+      "gold_docs": [
+        "gost-19903-007.pdf"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0182",
+      "question": "Сколько человек в комиссии по приказу ПР-2026-007?",
+      "gold_answer": "7 человек",
+      "gold_docs": [
+        "prikaz-komissiya-007.pdf"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0189",
+      "question": "В какой срок составляется авансовый отчёт по ФИ-2025-007?",
+      "gold_answer": "7 рабочих дней",
+      "gold_docs": [
+        "fin-predstavitel-007.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0196",
+      "question": "Как часто проводится повторный инструктаж по инструкции ИОТ-2025-008?",
+      "gold_answer": "не реже одного раза в 3 месяцев",
+      "gold_docs": [
+        "otrud-voditel-008.pdf"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0203",
+      "question": "Какой размер компенсации установлен документом FAQ-2025-008?",
+      "gold_answer": "до 11000 рублей",
+      "gold_docs": [
+        "faq-kadry-008.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0210",
+      "question": "Сколько символов минимум в пароле по политике ИБ-2025-008?",
+      "gold_answer": "не менее 16 символов",
+      "gold_docs": [
+        "ib-pochta-008.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0217",
+      "question": "Какой процент выплаты установлен документом РГ-2024-009?",
+      "gold_answer": "75 процентов",
+      "gold_docs": [
+        "hr-donorstvo-009.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0224",
+      "question": "Какой минимальный стаж требуется для должности по ДИ-2024-009?",
+      "gold_answer": "не менее 2 лет",
+      "gold_docs": [
+        "dolzhn-inzhener-konstruktor-009.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0231",
+      "question": "Какой срок исполнения приказа ПР-2026-009?",
+      "gold_answer": "3 рабочих дней",
+      "gold_docs": [
+        "prikaz-grafik-009.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0238",
+      "question": "Какой класс опасности отходов установлен ЭК-2024-009?",
+      "gold_answer": "I",
+      "gold_docs": [
+        "eco-stazhirovka-009.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0245",
+      "question": "Какова продолжительность перерывов на отдых по ИОТ-2025-010?",
+      "gold_answer": "20 минут",
+      "gold_docs": [
+        "otrud-svarshik-010.docx"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0252",
+      "question": "Какой срок хранения документов установлен стандартом СТ-2025-010?",
+      "gold_answer": "10 лет",
+      "gold_docs": [
+        "standart-nesootvetstviya-010.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0259",
+      "question": "Как часто нужно менять пароль по ИБ-2025-010?",
+      "gold_answer": "не реже одного раза в 60 дней",
+      "gold_docs": [
+        "ib-paroli-010.docx"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0266",
+      "question": "Какое базовое значение «сварочного тока» установлено регламентом ТК-2026-011?",
+      "gold_answer": "800 А",
+      "gold_docs": [
+        "prod-svarka-011.docx"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_0273",
+      "question": "Какая продолжительность рабочего времени установлена ДИ-2026-011?",
+      "gold_answer": "44 часов в неделю",
+      "gold_docs": [
+        "dolzhn-master-011.md"
+      ],
+      "type": "factual",
+      "expect_refusal": false
+    },
+    {
+      "id": "dev_sc_oos_000",
+      "question": "Какова квота на служебные поездки на Марс в этом году?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_001",
+      "question": "Какой пароль от корпоративного сервера?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_002",
+      "question": "Сколько стоит акция компании на бирже?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_003",
+      "question": "Какой курс доллара завтра?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_004",
+      "question": "Когда будет повышение зарплаты всем сотрудникам на 50%?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_005",
+      "question": "Какой любимый цвет генерального директора?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_006",
+      "question": "Сколько лет Луне?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_007",
+      "question": "Какой самый высокий горный пик в Европе?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_008",
+      "question": "Кто выиграет чемпионат мира по футболу?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_009",
+      "question": "Какой средний вес домашней кошки?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_010",
+      "question": "Во сколько завтра закроется метро?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_011",
+      "question": "Какая популяция белых медведей в России?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_012",
+      "question": "Сколько костей в теле человека?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_013",
+      "question": "Какой химический символ золота?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_014",
+      "question": "Когда изобрели печатный станок?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_015",
+      "question": "Какова глубина Марианской впадины?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_016",
+      "question": "Сколько стран в Европейском союзе?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_017",
+      "question": "Какой самый длинный река в мире?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_018",
+      "question": "Что значит аббревиатура НАСА?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    },
+    {
+      "id": "dev_sc_oos_019",
+      "question": "Сколько дней в високосном году?",
+      "gold_answer": "В документах нет ответа",
+      "gold_docs": [],
+      "type": "out_of_scope",
+      "expect_refusal": true
+    }
+  ]
+}

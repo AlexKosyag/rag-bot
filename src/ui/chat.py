@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.engine import AgentPrepared, RagEngine
+from src.engine import AgentPrepared, AgentStep, RagEngine
 from src.llm.client import LLMError
 
 
@@ -29,10 +29,12 @@ def _fragments_block(sources: list[dict], max_score: float) -> None:
             st.caption(s["preview"] + "…")
 
 
-def _steps_block(steps: list[dict]) -> None:
+def _steps_block(steps: list[dict], placeholder=None) -> None:
+    """Трасса поисков агента. placeholder — st-контейнер для live-обновлений."""
     if len(steps) <= 1:
         return
-    with st.expander(f"🔍 Поиски агента ({len(steps)})"):
+    container = placeholder if placeholder is not None else st
+    with container.expander(f"🔍 Поиски агента ({len(steps)})"):
         for s in steps:
             icon = "🌱" if s["source"] == "seed" else "🔎"
             st.markdown(
@@ -77,17 +79,28 @@ def render_chat(engine: RagEngine) -> None:
             st.markdown(query)
 
         with st.chat_message("assistant"):
-            prepared: AgentPrepared = engine.prepare_agent(query)
-            steps_data = [
-                {
-                    "source": s.source,
-                    "query": s.query,
-                    "max_score": round(s.max_score, 3),
-                    "n_hits": s.n_hits,
-                }
-                for s in prepared.steps
+            # История для query rewriting (все сообщения кроме текущего вопроса)
+            history = [
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages[:-1]
             ]
-            _steps_block(steps_data)
+
+            # Live-трасса шагов: контейнер обновляется по мере поиска
+            steps_placeholder = st.empty()
+            steps_data: list[dict] = []
+
+            def on_step(step: AgentStep) -> None:
+                steps_data.append({
+                    "source": step.source,
+                    "query": step.query,
+                    "max_score": round(step.max_score, 3),
+                    "n_hits": step.n_hits,
+                })
+                _steps_block(steps_data, placeholder=steps_placeholder)
+
+            prepared: AgentPrepared = engine.prepare_agent(
+                query, history=history, on_step=on_step,
+            )
 
             if not prepared.hits:
                 st.session_state.messages.append({

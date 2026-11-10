@@ -55,11 +55,23 @@ def main() -> None:
         "--correctness", action="store_true",
         help="judge-правильность ответов относительно gold (нужен --llm)",
     )
+    parser.add_argument(
+        "--hybrid", choices=["on", "off"], default=None,
+        help="перекрыть retrieval.hybrid для прогона",
+    )
+    parser.add_argument(
+        "--reranker", choices=["off", "heuristic", "cross_encoder"], default=None,
+        help="перекрыть retrieval.reranker для прогона",
+    )
     args = parser.parse_args()
     if args.judge or args.baseline or args.correctness:
         args.llm = True
 
     cfg = load_config()
+    if args.hybrid is not None:
+        cfg.retrieval.hybrid = args.hybrid == "on"
+    if args.reranker is not None:
+        cfg.retrieval.reranker = args.reranker
     engine = RagEngine.from_config(cfg)
     k = args.k or cfg.retrieval.top_k
     tau = args.tau if args.tau is not None else cfg.retrieval.threshold
@@ -169,27 +181,31 @@ def main() -> None:
 
     for i, item in enumerate(items, 1):
         q = item["question"]
-        prepared = engine.prepare_agent(q, top_k=k, tau=tau)
-        ranked = [h.doc_name for h in prepared.hits]
-
-        # Отказ определяется по ответу модели (делегирован); для retrieval-only
-        # прогона (без --llm) — по порогу
         if args.llm:
+            prepared = engine.prepare_agent(q, top_k=k, tau=tau)
+            ranked = [h.doc_name for h in prepared.hits]
             t0 = time.perf_counter()
             answer = engine.answer_agent(prepared)
             latencies.append((time.perf_counter() - t0) * 1000)
             refused = engine.answer_is_refusal(answer)
         else:
+            # retrieval-only: без LLM (быстро, для сравнения режимов поиска)
+            prep = engine.prepare(q, top_k=k, tau=tau)
+            ranked = [h.doc_name for h in prep.retrieval.hits]
             answer = None
-            refused = not any(s.answer for s in prepared.steps)
+            refused = not prep.decision.answer
 
         refusal_rows.append({"expect_refusal": item["expect_refusal"], "refused": refused})
-        tool_calls_total += prepared.tool_calls
+        if args.llm:
+            tool_calls_total += prepared.tool_calls
         if item["gold_docs"]:
             retrieval_rows.append({"ranked": ranked, "gold": item["gold_docs"]})
 
-        status = f"refused(max={prepared.max_score:.3f})" if refused else \
-            f"answer(max={prepared.max_score:.3f}, tools={prepared.tool_calls})"
+        status = "refused" if refused else "answer"
+        if args.llm:
+            status += f"(max={prepared.max_score:.3f}, tools={prepared.tool_calls})"
+        else:
+            status += f"(max={prep.decision.max_score:.3f})"
 
         if args.llm and not refused:
             generated += 1

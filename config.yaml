@@ -9,8 +9,11 @@ models:
 
 retrieval:
   top_k: 5                 # 3..10, правится в админке
-  threshold: 0.50          # порог отказа tau (откалиброван на dev: child-score, скан 2026-10; см. docs/evaluation.md)
+  threshold: 0.44          # порог отказа tau (откалиброван на scale-dev: hybrid, 60 вопросов)
   delta: 0.05              # мин. разрыв top1-top2 (низкий -> осторожный ответ)
+  hybrid: true             # RRF-слияние векторного и BM25-поиска (FTS5)
+  rrf_k: 60                # константа Reciprocal Rank Fusion
+  reranker: heuristic      # off | heuristic | cross_encoder (bge-reranker-v2-m3)
 
 chunking:
   size_tokens: 500
@@ -25,6 +28,7 @@ generation:
 agentic:
   enabled: true           # агентный поиск: LLM вызывает search_documents поверх seed-ретрива
   max_tool_calls: 3       # максимум вызовов инструмента за диалог (плюс seed всегда)
+  rewrite: true           # query rewriting с учётом истории диалога
 
 paths:
   raw_dir: data/raw

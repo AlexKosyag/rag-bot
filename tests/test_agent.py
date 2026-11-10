@@ -171,3 +171,44 @@ def test_stream_agent_yields_direct_answer(tmp_path):
     prep = engine.prepare_agent("вопрос")
     chunks = list(engine.stream_agent(prep))
     assert "".join(chunks) == "Прямой ответ."
+
+
+def test_on_step_callback_receives_seed_and_tool(tmp_path):
+    tc = {"name": "search_documents", "args": {"query": "уточнение"}}
+    engine, _ = _make_engine(
+        tmp_path,
+        script=[("", [tc]), ("Итог.", [])],
+        max_tool_calls=2,
+    )
+    steps_seen = []
+    engine.prepare_agent("вопрос", on_step=steps_seen.append)
+    assert len(steps_seen) == 2
+    assert steps_seen[0].source == "seed"
+    assert steps_seen[1].source == "tool"
+
+
+def test_rewrite_uses_history(tmp_path):
+    # FakeLLM.complete возвращает «Переписанный запрос» — он должен попасть
+    # в seed-шаг; без истории остаётся исходный вопрос
+    engine, llm = _make_engine(tmp_path, script=[("Ответ.", [])])
+
+    prep_no_hist = engine.prepare_agent("вопрос?")
+    assert prep_no_hist.steps[0].query == "вопрос?"
+    assert prep_no_hist.rewritten == ""
+
+    # с историей rewrite_query вызывает llm.complete -> "Финальный ответ
+    # без инструментов." (заглушка) — попадает в rewritten
+    history = [{"role": "user", "content": "про отпуск"},
+               {"role": "assistant", "content": "28 дней"}]
+    prep_hist = engine.prepare_agent("а в командировке?", history=history)
+    assert prep_hist.rewritten != ""
+    assert prep_hist.steps[0].query == prep_hist.rewritten
+
+
+def test_rewrite_disabled_by_config(tmp_path):
+    engine, _ = _make_engine(tmp_path, script=[("Ответ.", [])])
+    engine.cfg.agentic.rewrite = False
+    history = [{"role": "user", "content": "про отпуск"}]
+    prep = engine.prepare_agent("вопрос?", history=history)
+    assert prep.rewritten == ""
+    assert prep.steps[0].query == "вопрос?"

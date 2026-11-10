@@ -101,6 +101,9 @@ def execute_search(
     top_k_default: int,
     tau: float,
     delta: float = 0.0,
+    hybrid: bool = False,
+    rrf_k: int = 60,
+    reranker=None,
 ) -> ToolOutcome:
     """Исполняет search_documents: retrieve() + decide() с аргументами LLM."""
     query = str(call.args.get("query") or "").strip()
@@ -116,7 +119,8 @@ def execute_search(
     top_k = max(1, min(top_k, 10))
     call = ToolCall(name=call.name, args={"query": query, "top_k": top_k})
     res = retrieve(query, embedder, store, top_k=top_k,
-                   registry=registry)
+                   registry=registry, hybrid=hybrid, rrf_k=rrf_k,
+                   reranker=reranker)
     return ToolOutcome(call=call, result=res, decision=decide(res, tau, delta))
 
 
